@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Flipzone Balkan | Elite Reselling Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Netlify Identity Widget -->
+    <!-- Netlify Identity Widget - Jedini izvor istine -->
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,67 +31,12 @@
         border: 1px solid rgba(255, 255, 255, 0.05);
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
       }
-      .card-3d {
-        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        transform-style: preserve-3d;
-      }
-      .card-3d:hover {
-        transform: rotateX(5deg) rotateY(-5deg) scale(1.02);
-      }
-      @keyframes gradient-move {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-      .animate-text-gradient {
-        background: linear-gradient(90deg, #fff, #3b82f6, #06b6d4, #fff);
-        background-size: 200% auto;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: gradient-move 3s linear infinite;
-      }
+      /* Osiguravamo da je modal vidljiv */
       #netlify-identity-widget, 
       .netlify-identity-widget-modal {
         z-index: 999999 !important;
       }
     </style>
-    <script>
-      // PRISILNA KONFIGURACIJA ENDPOINTA
-      // Ovo govori widgetu točno na koji URL da se spoji
-      window.NETLIFY_IDENTITY_API_URL = "https://flipzone-groupbalkan.netlify.app/.netlify/identity";
-      
-      (function() {
-        var hash = window.location.hash;
-        // Ako imamo token u URL-u, moramo osigurati da widget ostane otvoren
-        if (hash && (hash.includes('invite_token') || hash.includes('recovery_token'))) {
-          console.log("Token detected. Forcing Identity API path...");
-          
-          var checkWidget = setInterval(function() {
-            if (window.netlifyIdentity) {
-              clearInterval(checkWidget);
-              
-              // Inicijalizacija s eksplicitnim URL-om
-              window.netlifyIdentity.init({
-                APIUrl: window.NETLIFY_IDENTITY_API_URL
-              });
-
-              window.netlifyIdentity.on('init', function(user) {
-                if (!user) {
-                  window.netlifyIdentity.open();
-                }
-              });
-
-              // Backup otvaranje ako se init ne dogodi
-              setTimeout(function() { 
-                if (!document.querySelector('.netlify-identity-widget-modal')) {
-                  window.netlifyIdentity.open(); 
-                }
-              }, 1000);
-            }
-          }, 100);
-        }
-      })();
-    </script>
 <script type="importmap">
 {
   "imports": {
