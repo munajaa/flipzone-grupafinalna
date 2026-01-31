@@ -16,11 +16,10 @@ const App: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Provjera role - koristimo optional chaining radi sigurnosti
+  // Provjera role
   const isPaid = useMemo(() => {
     if (!user) return false;
     const roles = user.app_metadata?.roles || [];
-    console.log("User Roles:", roles);
     return roles.includes('paid');
   }, [user]);
 
@@ -35,42 +34,31 @@ const App: React.FC = () => {
   }, [activeCategory]);
 
   useEffect(() => {
-    const handleIdentity = () => {
+    const initNetlifyIdentity = () => {
       if (typeof netlifyIdentity === 'undefined') {
-        console.error("Netlify Identity Widget not found!");
-        setIsLoading(false);
+        console.error("Netlify Identity script not loaded yet.");
         return;
       }
 
-      // 1. Inicijalizacija
-      netlifyIdentity.init();
+      // EKSPLICITNA KONFIGURACIJA PREMA TVOM ZAHTJEVU
+      netlifyIdentity.init({
+        APIUrl: "https://flipzone-groupbalkan.netlify.app/.netlify/identity"
+      });
 
-      // 2. Provjera trenutnog korisnika
       const currentUser = netlifyIdentity.currentUser();
-      if (currentUser) {
-        setUser(currentUser);
-      }
+      if (currentUser) setUser(currentUser);
 
-      // 3. Slušači događaja
       netlifyIdentity.on('init', (u: any) => {
         if (u) setUser(u);
         setIsLoading(false);
       });
 
       netlifyIdentity.on('login', (u: any) => {
-        console.log("Login success:", u.email);
         setUser(u);
         netlifyIdentity.close();
-        
-        // Ako smo ušli preko invite-a, očisti URL
-        if (window.location.hash.includes('invite_token')) {
+        if (window.location.hash.includes('token=')) {
           window.location.hash = '';
-          // Refreshaj ako rola nije odmah tu (webhook sinkronizacija)
-          setTimeout(() => {
-            u.jwt().then(() => {
-              netlifyIdentity.currentUser() && setUser({...netlifyIdentity.currentUser()});
-            });
-          }, 1000);
+          setTimeout(() => window.location.reload(), 500);
         }
       });
 
@@ -80,24 +68,15 @@ const App: React.FC = () => {
         window.location.hash = '';
       });
 
-      netlifyIdentity.on('error', (err: any) => {
-        console.error('Identity Error:', err);
-      });
-
-      // Ako skripta u index.html nije uspjela, pokušaj opet ovdje
-      if (window.location.hash.includes('token=')) {
-        setTimeout(() => netlifyIdentity.open(), 500);
-      }
-
-      // Isključi loading nakon što je sve postavljeno
-      setTimeout(() => setIsLoading(false), 800);
+      // Uvijek ugasi loading nakon 2 sekunde, čak i ako Identity zablokira
+      setTimeout(() => setIsLoading(false), 2000);
     };
 
     if (document.readyState === 'complete') {
-      handleIdentity();
+      initNetlifyIdentity();
     } else {
-      window.addEventListener('load', handleIdentity);
-      return () => window.removeEventListener('load', handleIdentity);
+      window.addEventListener('load', initNetlifyIdentity);
+      return () => window.removeEventListener('load', initNetlifyIdentity);
     }
   }, []);
 
@@ -119,17 +98,15 @@ const App: React.FC = () => {
     }
   };
 
-  // Moderni Loader
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#02040a] flex flex-col items-center justify-center space-y-4">
+      <div className="min-h-screen bg-[#02040a] flex flex-col items-center justify-center space-y-6">
         <div className="w-16 h-16 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
-        <div className="text-blue-500 font-black italic uppercase tracking-[0.5em] text-[10px]">Inicijalizacija...</div>
+        <div className="text-blue-500 font-black italic uppercase tracking-[0.5em] text-[10px] animate-pulse">Sigurno Učitavanje...</div>
       </div>
     );
   }
 
-  // Korisnik nije prijavljen
   if (!user) {
     return (
       <div className="relative min-h-screen">
@@ -139,7 +116,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Korisnik je prijavljen ali nije platio (nema 'paid' rolu)
   if (!isPaid) {
     return (
       <div className="relative min-h-screen">
@@ -149,7 +125,6 @@ const App: React.FC = () => {
     );
   }
 
-  // GLAVNA APLIKACIJA ZA PAID KORISNIKE
   return (
     <div className="relative min-h-screen selection:bg-blue-500 selection:text-white bg-[#02040a]">
       <LiquidBackground />

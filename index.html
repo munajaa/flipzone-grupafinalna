@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Flipzone Balkan | Elite Reselling Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Netlify Identity Widget - Učitavamo ga bez defer kako bi bio dostupan odmah -->
+    <!-- Netlify Identity Widget -->
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,8 +25,11 @@
       .font-heading {
         font-family: 'Plus Jakarta Sans', sans-serif;
       }
-      .perspective-2000 {
-        perspective: 2000px;
+      .glass-card {
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
       }
       .card-3d {
         transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -34,12 +37,6 @@
       }
       .card-3d:hover {
         transform: rotateX(5deg) rotateY(-5deg) scale(1.02);
-      }
-      .glass-card {
-        background: rgba(15, 23, 42, 0.4);
-        backdrop-filter: blur(20px);
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
       }
       @keyframes gradient-move {
         0% { background-position: 0% 50%; }
@@ -53,38 +50,43 @@
         -webkit-text-fill-color: transparent;
         animation: gradient-move 3s linear infinite;
       }
-      ::-webkit-scrollbar { width: 4px; }
-      ::-webkit-scrollbar-track { background: #02040a; }
-      ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-      
-      /* KRITIČNO: Osiguravamo da je Netlify prozor IZNAD SVEGA */
       #netlify-identity-widget, 
       .netlify-identity-widget-modal {
         z-index: 999999 !important;
       }
     </style>
     <script>
-      // RUKOVANJE TOKENIMA (INVITE/RECOVERY)
-      // Moramo reagirati čim se stranica učita
+      // PRISILNA KONFIGURACIJA ENDPOINTA
+      // Ovo govori widgetu točno na koji URL da se spoji
+      window.NETLIFY_IDENTITY_API_URL = "https://flipzone-groupbalkan.netlify.app/.netlify/identity";
+      
       (function() {
         var hash = window.location.hash;
+        // Ako imamo token u URL-u, moramo osigurati da widget ostane otvoren
         if (hash && (hash.includes('invite_token') || hash.includes('recovery_token'))) {
-          console.log("Detecting Netlify Identity Token...");
-          // Čuvamo hash u memoriji u slučaju da ga React obriše
-          window.__NETLIFY_TOKEN = hash;
+          console.log("Token detected. Forcing Identity API path...");
           
-          // Čekamo da se widget učita
           var checkWidget = setInterval(function() {
             if (window.netlifyIdentity) {
               clearInterval(checkWidget);
+              
+              // Inicijalizacija s eksplicitnim URL-om
+              window.netlifyIdentity.init({
+                APIUrl: window.NETLIFY_IDENTITY_API_URL
+              });
+
               window.netlifyIdentity.on('init', function(user) {
                 if (!user) {
-                  console.log("Invoking Identity Modal for token...");
                   window.netlifyIdentity.open();
                 }
               });
-              // Prisilno otvaranje nakon 1s ako init nije uspio
-              setTimeout(function() { window.netlifyIdentity.open(); }, 1500);
+
+              // Backup otvaranje ako se init ne dogodi
+              setTimeout(function() { 
+                if (!document.querySelector('.netlify-identity-widget-modal')) {
+                  window.netlifyIdentity.open(); 
+                }
+              }, 1000);
             }
           }, 100);
         }
