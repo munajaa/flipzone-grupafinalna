@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Flipzone Balkan | Elite Reselling Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Netlify Identity Widget - Jedini izvor istine -->
+    <!-- Netlify Identity Widget -->
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -31,12 +31,28 @@
         border: 1px solid rgba(255, 255, 255, 0.05);
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
       }
-      /* Osiguravamo da je modal vidljiv */
       #netlify-identity-widget, 
       .netlify-identity-widget-modal {
         z-index: 999999 !important;
       }
     </style>
+    <script>
+      // Presretač za tokene (Invite/Recovery)
+      // Ako korisnik dođe preko email linka, odmah otvori widget
+      (function() {
+        function checkToken() {
+          const hash = window.location.hash;
+          if (hash && (hash.includes('token=') || hash.includes('invite_token') || hash.includes('recovery_token'))) {
+            if (window.netlifyIdentity) {
+              window.netlifyIdentity.open();
+            } else {
+              setTimeout(checkToken, 100);
+            }
+          }
+        }
+        window.addEventListener('load', checkToken);
+      })();
+    </script>
 <script type="importmap">
 {
   "imports": {

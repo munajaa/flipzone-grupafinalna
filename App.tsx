@@ -18,6 +18,7 @@ const App: React.FC = () => {
 
   const isPaid = useMemo(() => {
     if (!user) return false;
+    // Netlify Identity sprema role u app_metadata
     const roles = user.app_metadata?.roles || [];
     return roles.includes('paid');
   }, [user]);
@@ -34,46 +35,44 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleIdentity = () => {
-      if (typeof netlifyIdentity === 'undefined') {
-        console.warn("Čekam Netlify Identity skriptu...");
-        return;
-      }
+      if (typeof netlifyIdentity === 'undefined') return;
 
-      // STANDARDNA INICIJALIZACIJA (Bez parametara je najsigurnije na produkciji)
+      // Inicijalizacija bez parametara je ključna za SPA na istoj domeni
       netlifyIdentity.init();
 
+      // Provjeri trenutnog korisnika
       const currentUser = netlifyIdentity.currentUser();
       if (currentUser) setUser(currentUser);
 
+      // Event: Init završen
       netlifyIdentity.on('init', (u: any) => {
         if (u) setUser(u);
         setIsLoading(false);
-        
-        // Automatsko otvaranje ako je token u URL-u (pozivnica/reset)
-        const hash = window.location.hash;
-        if (hash && (hash.includes('token=') || hash.includes('invite_token'))) {
-          netlifyIdentity.open();
-        }
       });
 
+      // Event: Prijava (Login) ili Potvrda računa (Signup via Invite)
       netlifyIdentity.on('login', (u: any) => {
+        console.log("Korisnik prijavljen:", u);
         setUser(u);
         netlifyIdentity.close();
-        // Očisti hash nakon prijave
-        if (window.location.hash) {
+        
+        // Ako smo imali token u URL-u, očisti ga nakon uspješne prijave
+        if (window.location.hash.includes('token=')) {
           window.history.replaceState(null, "", window.location.pathname);
         }
       });
 
+      // Event: Odjava
       netlifyIdentity.on('logout', () => {
         setUser(null);
         setActiveSection('dashboard');
+        window.location.hash = '';
       });
 
-      netlifyIdentity.on('error', (err: any) => console.error("Identity Error:", err));
-
-      // Sigurnosni prekidač za loading
-      setTimeout(() => setIsLoading(false), 2500);
+      netlifyIdentity.on('error', (err: any) => console.error("Netlify Identity Error:", err));
+      
+      // Isključi loading screen nakon 2 sekunde u svakom slučaju
+      setTimeout(() => setIsLoading(false), 2000);
     };
 
     if (document.readyState === 'complete') {
@@ -106,11 +105,12 @@ const App: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#02040a] flex flex-col items-center justify-center space-y-6">
         <div className="w-16 h-16 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
-        <div className="text-blue-500 font-black italic uppercase tracking-[0.5em] text-[10px] animate-pulse">Povezivanje...</div>
+        <div className="text-blue-500 font-black italic uppercase tracking-[0.5em] text-[10px] animate-pulse">Sistem se pokreće...</div>
       </div>
     );
   }
 
+  // Ako korisnik nije prijavljen, pokaži Landing Page s opcijom prijave
   if (!user) {
     return (
       <div className="relative min-h-screen">
@@ -120,6 +120,7 @@ const App: React.FC = () => {
     );
   }
 
+  // Ako korisnik nema rolu 'paid', pokaži Unlock screen
   if (!isPaid) {
     return (
       <div className="relative min-h-screen">
@@ -129,9 +130,11 @@ const App: React.FC = () => {
     );
   }
 
+  // Glavna aplikacija za plaćene članove
   return (
     <div className="relative min-h-screen selection:bg-blue-500 selection:text-white bg-[#02040a]">
       <LiquidBackground />
+      
       <header className="sticky top-0 z-50 py-6 px-4 md:px-10">
         <div className="max-w-7xl mx-auto flex items-center justify-between glass-card p-4 rounded-[2.5rem] border-white/10">
           <button onClick={() => setActiveSection('dashboard')} className="flex items-center gap-4 group">
@@ -141,13 +144,21 @@ const App: React.FC = () => {
                <div className="text-[9px] font-black text-blue-500 uppercase tracking-[0.5em] leading-none mt-1 text-left">Balkan Elite</div>
              </div>
           </button>
+
           <nav className="hidden md:flex items-center gap-2">
             {['lessons', 'suppliers', 'documents'].map(id => (
-              <button key={id} onClick={() => setActiveSection(id as AppSection)} className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${activeSection === id ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'}`}>
+              <button
+                key={id}
+                onClick={() => setActiveSection(id as AppSection)}
+                className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
+                  activeSection === id ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
                 {id === 'lessons' ? 'Akademija' : id === 'suppliers' ? 'Vendori' : 'Resursi'}
               </button>
             ))}
           </nav>
+
           <div className="flex items-center gap-4">
              <button onClick={handleLogout} className="px-4 py-3 md:px-6 md:py-3 rounded-2xl bg-slate-900 border border-white/5 text-[10px] font-black italic text-slate-400 hover:text-white transition-colors">LOGOUT</button>
              <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 p-[1px] hover:scale-105 transition-transform cursor-pointer">
@@ -156,6 +167,7 @@ const App: React.FC = () => {
           </div>
         </div>
       </header>
+
       <main className="max-w-7xl mx-auto px-6 md:px-10 pb-20">
         {activeSection === 'dashboard' && (
           <div className="py-20 text-center space-y-12 animate-in fade-in duration-1000">
@@ -180,6 +192,7 @@ const App: React.FC = () => {
             </div>
           </div>
         )}
+
         {activeSection === 'lessons' && (
           <div className="py-10 space-y-16 animate-in slide-in-from-bottom-10 duration-700">
              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
@@ -212,6 +225,7 @@ const App: React.FC = () => {
              </div>
           </div>
         )}
+
         {activeSection === 'suppliers' && (
           <div className="py-10 animate-in slide-in-from-right-10 duration-700">
              <h2 className="text-4xl font-black font-heading italic uppercase tracking-tighter text-white mb-12">VIP <span className="text-blue-500">Vendor</span> Hub</h2>
@@ -246,6 +260,7 @@ const App: React.FC = () => {
           </div>
         )}
       </main>
+
       {selectedVideo && <VideoPlayer video={selectedVideo} onClose={() => setSelectedVideo(null)} onSelectVideo={setSelectedVideo} />}
     </div>
   );
