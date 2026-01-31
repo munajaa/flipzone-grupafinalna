@@ -33,33 +33,49 @@ const App: React.FC = () => {
   }, [activeCategory]);
 
   useEffect(() => {
-    // Inicijalizacija Netlify Identity
     if (typeof netlifyIdentity !== 'undefined') {
-      netlifyIdentity.init();
+      // Inicijalizacija sa dodatnim postavkama
+      netlifyIdentity.init({
+        APIReachable: true
+      });
       
       console.log("Identity Hub Initialized");
 
-      // Provjera tokena u URL-u (Invite/Recovery)
-      const hash = window.location.hash;
-      if (hash && (hash.includes('invite_token') || hash.includes('recovery_token') || hash.includes('confirmation_token'))) {
-        console.log("Identity Token detektiran. Otvaram widget...");
-        setTimeout(() => netlifyIdentity.open(), 500);
-      }
+      // Funkcija za provjeru i otvaranje widgeta ako postoji token
+      const handleToken = () => {
+        const hash = window.location.hash;
+        if (hash && (hash.includes('invite_token') || hash.includes('recovery_token') || hash.includes('confirmation_token'))) {
+          console.log("Token detektiran u URL-u, otvaram widget...");
+          // Dajemo widgetu trenutak da se stabilizira
+          setTimeout(() => {
+            netlifyIdentity.open(); 
+          }, 500);
+        }
+      };
 
-      const currentUser = netlifyIdentity.currentUser();
-      if (currentUser) {
-        setUser(currentUser);
-      }
+      // Provjeravamo odmah i na init eventu
+      handleToken();
+      netlifyIdentity.on('init', (u: any) => {
+        console.log('Identity Init event fired');
+        if (u) setUser(u);
+        handleToken();
+      });
 
       netlifyIdentity.on('login', (u: any) => {
         console.log('Login success:', u.email);
         setUser(u);
         netlifyIdentity.close();
+        // Ako je korisnik upravo prihvatio invite, možda mu treba refresh da vidi 'paid' rolu
+        if (window.location.hash.includes('invite_token')) {
+          window.location.hash = ''; // Očisti token
+        }
       });
 
       netlifyIdentity.on('logout', () => {
+        console.log('User logged out');
         setUser(null);
         setActiveSection('dashboard');
+        window.location.hash = '';
       });
 
       netlifyIdentity.on('error', (err: any) => console.error('Identity Error:', err));
@@ -88,7 +104,6 @@ const App: React.FC = () => {
 
   if (isLoading) return null;
 
-  // Render logika bazirana na statusu korisnika
   if (!user) {
     return (
       <div className="relative min-h-screen">
