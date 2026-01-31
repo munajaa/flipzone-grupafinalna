@@ -56,27 +56,36 @@
       ::-webkit-scrollbar-track { background: #02040a; }
       ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
       
+      /* Osiguravamo da je Netlify widget uvijek iznad svega */
       #netlify-identity-widget {
-        z-index: 1000;
+        z-index: 9999 !important;
       }
     </style>
     <script>
-      // Ovaj skript pomaže Netlify Identity-u da obradi invite/recovery tokene
-      if (window.location.hash) {
-        const hash = window.location.hash;
-        if (hash.indexOf('invite_token') !== -1 || hash.indexOf('recovery_token') !== -1) {
-          console.log("Identity token detektiran, inicijaliziram widget...");
-          window.addEventListener('load', function() {
+      // Force Netlify Identity to handle invite tokens immediately
+      (function() {
+        var hash = window.location.hash;
+        if (hash && (hash.indexOf('invite_token') !== -1 || hash.indexOf('recovery_token') !== -1)) {
+          console.log("Token detected in URL hash. Waiting for Identity widget...");
+          var interval = setInterval(function() {
             if (window.netlifyIdentity) {
+              clearInterval(interval);
               window.netlifyIdentity.on('init', function(user) {
                 if (!user) {
+                  console.log("No user on init, but token present. Forcing open...");
                   window.netlifyIdentity.open();
                 }
               });
+              // Ako se init već dogodio, pokušaj otvoriti nakon kratke pauze
+              setTimeout(function() {
+                window.netlifyIdentity.open();
+              }, 1000);
             }
-          });
+          }, 100);
+          // Stop trying after 5 seconds
+          setTimeout(function() { clearInterval(interval); }, 5000);
         }
-      }
+      })();
     </script>
 <script type="importmap">
 {

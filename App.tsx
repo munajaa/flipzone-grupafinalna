@@ -33,70 +33,57 @@ const App: React.FC = () => {
   }, [activeCategory]);
 
   useEffect(() => {
-    if (typeof netlifyIdentity !== 'undefined') {
-      // Postavljamo init ali ne forsiramo logout ako korisnik nije ulogiran
-      netlifyIdentity.init();
-      
-      console.log("Identity Hub Initializing...");
-
-      // Funkcija koja forsira otvaranje widgeta ako postoji token
-      const checkAndOpenToken = () => {
-        const hash = window.location.hash;
-        if (hash && (hash.includes('invite_token') || hash.includes('recovery_token') || hash.includes('confirmation_token'))) {
-          console.log("Identity [Token Mode] - Otvaram formu za registraciju/oporavak");
-          setTimeout(() => {
-            netlifyIdentity.open(); // Otvara prozor
-          }, 300);
-        }
-      };
-
-      // Inicijalna provjera na startu
-      const currentUser = netlifyIdentity.currentUser();
-      if (currentUser) {
-        setUser(currentUser);
-      } else {
-        checkAndOpenToken();
-      }
-
-      // Eventi
-      netlifyIdentity.on('init', (u: any) => {
-        console.log('Identity [Init]');
-        if (u) setUser(u);
-        else checkAndOpenToken();
-      });
-
-      netlifyIdentity.on('login', (u: any) => {
-        console.log('Identity [Login success]:', u.email);
-        setUser(u);
-        netlifyIdentity.close();
+    const initIdentity = () => {
+      if (typeof netlifyIdentity !== 'undefined') {
+        netlifyIdentity.init();
         
-        // Ako smo upravo ušli preko invite tokena, očisti ga iz URL-a
-        if (window.location.hash.includes('invite_token')) {
-          window.location.hash = '';
-          // Opcionalno reloadaj ako rola nije odmah vidljiva
-          if (!u.app_metadata?.roles?.includes('paid')) {
-             setTimeout(() => window.location.reload(), 1500);
+        console.log("Identity Hub Initializing...");
+
+        const currentUser = netlifyIdentity.currentUser();
+        if (currentUser) {
+          setUser(currentUser);
+        }
+
+        // Event Listeners
+        netlifyIdentity.on('init', (u: any) => {
+          if (u) setUser(u);
+          // Ako imamo token u URL-u, a nismo ulogirani, otvori widget
+          if (!u && window.location.hash.includes('token=')) {
+            netlifyIdentity.open();
           }
-        }
-      });
+        });
 
-      netlifyIdentity.on('logout', () => {
-        console.log('Identity [Logout]');
-        setUser(null);
-        setActiveSection('dashboard');
-        window.location.hash = '';
-      });
+        netlifyIdentity.on('login', (u: any) => {
+          setUser(u);
+          netlifyIdentity.close();
+          // Očisti URL od tokena nakon uspješne prijave
+          if (window.location.hash.includes('token=')) {
+            window.location.hash = '';
+            // Forsirani refresh ako rola nije vidljiva odmah
+            if (!u.app_metadata?.roles?.includes('paid')) {
+              setTimeout(() => window.location.reload(), 1000);
+            }
+          }
+        });
 
-      netlifyIdentity.on('error', (err: any) => {
-        console.error('Identity [Error]:', err);
-        // Ako je greška "Requested entity was not found", vjerojatno je istekao token ili loš API setup
-        if (err.message?.includes('not found')) {
-           console.warn("Mogući problem sa tokenom pozivnice.");
-        }
-      });
+        netlifyIdentity.on('logout', () => {
+          setUser(null);
+          setActiveSection('dashboard');
+          window.location.hash = '';
+        });
+
+        netlifyIdentity.on('error', (err: any) => console.error('Identity Error:', err));
+      }
+      setIsLoading(false);
+    };
+
+    // Dajemo browseru trenutak da učita eksterne skripte
+    if (document.readyState === 'complete') {
+      initIdentity();
+    } else {
+      window.addEventListener('load', initIdentity);
+      return () => window.removeEventListener('load', initIdentity);
     }
-    
-    setIsLoading(false);
   }, []);
 
   const handleLogout = () => netlifyIdentity.logout();
@@ -117,7 +104,13 @@ const App: React.FC = () => {
     }
   };
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#02040a] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
