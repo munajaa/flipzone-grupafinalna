@@ -1,22 +1,24 @@
+
 {
-  "name": "flipzone-balkan-reselling-hub",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "flipzone-balkan",
+  "version": "1.0.0",
+  "description": "Flipzone Balkan Reselling Hub",
+  "main": "index.js",
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "stripe": "^17.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "node-fetch": "^3.3.2"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
   }
 }

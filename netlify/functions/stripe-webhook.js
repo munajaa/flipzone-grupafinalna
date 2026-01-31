@@ -1,6 +1,5 @@
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 exports.handler = async (event) => {
   const sig = event.headers['stripe-signature'];
@@ -24,7 +23,6 @@ exports.handler = async (event) => {
 
     console.log(`Processing payment for email: ${email}`);
 
-    // Postavke za Identity Admin API
     const adminHeaders = {
       'Authorization': `Bearer ${process.env.NETLIFY_IDENTITY_ADMIN_TOKEN}`,
       'Content-Type': 'application/json',
@@ -36,6 +34,7 @@ exports.handler = async (event) => {
       // 1. Ako nemamo ID u metadata, pokušaj naći korisnika po emailu
       if (!targetUserId && email) {
         const listUrl = `${process.env.URL}/.netlify/identity/admin/users`;
+        // Koristimo globalni fetch koji je dostupan u Node.js 18+
         const listResponse = await fetch(listUrl, { headers: adminHeaders });
         if (listResponse.ok) {
           const { users } = await listResponse.json();
