@@ -33,58 +33,44 @@ const App: React.FC = () => {
   }, [activeCategory]);
 
   useEffect(() => {
-    console.log("Initializing Netlify Identity...");
-    netlifyIdentity.init();
-    
-    // Debug logging za Identity evente
-    netlifyIdentity.on('init', (u: any) => console.log('Identity [Init]:', u));
-    netlifyIdentity.on('open', () => console.log('Identity [Open]'));
-    netlifyIdentity.on('close', () => console.log('Identity [Close]'));
-    netlifyIdentity.on('error', (err: any) => console.error('Identity [Error]:', err));
+    // Inicijalizacija Netlify Identity
+    if (typeof netlifyIdentity !== 'undefined') {
+      netlifyIdentity.init();
+      
+      console.log("Identity Hub Initialized");
 
-    // Handle invite/recovery tokena u URL-u
-    const hash = window.location.hash;
-    if (hash && (hash.includes('_token=') || hash.includes('invite_token=') || hash.includes('recovery_token='))) {
-      console.log("Detected Identity token in URL. Opening widget for signup/recovery...");
-      // Kratka odgoda da se osigura da je widget spreman
-      setTimeout(() => {
-        netlifyIdentity.open();
-      }, 500);
-    }
-
-    const currentUser = netlifyIdentity.currentUser();
-    if (currentUser) {
-      console.log("Logged in user found:", currentUser.email);
-      setUser(currentUser);
-    }
-    setIsLoading(false);
-
-    netlifyIdentity.on('login', (loggedUser: any) => {
-      console.log('Identity [Login success]:', loggedUser.email);
-      setUser(loggedUser);
-      netlifyIdentity.close();
-      // Force refresh of roles
-      if (loggedUser.app_metadata?.roles?.includes('paid')) {
-        setActiveSection('dashboard');
+      // Provjera tokena u URL-u (Invite/Recovery)
+      const hash = window.location.hash;
+      if (hash && (hash.includes('invite_token') || hash.includes('recovery_token') || hash.includes('confirmation_token'))) {
+        console.log("Identity Token detektiran. Otvaram widget...");
+        setTimeout(() => netlifyIdentity.open(), 500);
       }
-    });
 
-    netlifyIdentity.on('logout', () => {
-      console.log('Identity [Logout]');
-      setUser(null);
-      setActiveSection('dashboard');
-      window.location.hash = ''; // Clear hash on logout
-    });
+      const currentUser = netlifyIdentity.currentUser();
+      if (currentUser) {
+        setUser(currentUser);
+      }
+
+      netlifyIdentity.on('login', (u: any) => {
+        console.log('Login success:', u.email);
+        setUser(u);
+        netlifyIdentity.close();
+      });
+
+      netlifyIdentity.on('logout', () => {
+        setUser(null);
+        setActiveSection('dashboard');
+      });
+
+      netlifyIdentity.on('error', (err: any) => console.error('Identity Error:', err));
+    }
+    
+    setIsLoading(false);
   }, []);
 
   const handleLogout = () => netlifyIdentity.logout();
 
   const handleStartPayment = async () => {
-    if (user && isPaid) {
-      setActiveSection('dashboard');
-      return;
-    }
-
     try {
       const payload = user ? { userId: user.id, email: user.email } : { email: '' };
       const response = await fetch('/.netlify/functions/create-checkout', {
@@ -96,12 +82,13 @@ const App: React.FC = () => {
       if (session.url) window.location.href = session.url;
     } catch (err) {
       console.error("Payment error:", err);
-      alert("Greška pri pokretanju plaćanja. Molimo pokušajte ponovo.");
+      alert("Greška kod plaćanja. Pokušajte ponovo.");
     }
   };
 
   if (isLoading) return null;
 
+  // Render logika bazirana na statusu korisnika
   if (!user) {
     return (
       <div className="relative min-h-screen">

@@ -4,24 +4,21 @@
   functions = "netlify/functions"
   publish = "dist"
 
+# 1. Ako korisnik ima rolu 'paid', dopusti mu pristup aplikaciji (SPA rewrite)
 [[redirects]]
   from = "/app/*"
+  to = "/index.html"
   status = 200
   conditions = {Role = ["paid"]}
 
+# 2. Ako nema rolu 'paid', a pokušava ući u /app, baci ga na landing/login
 [[redirects]]
   from = "/app/*"
-  to = "/no-access"
+  to = "/"
   status = 302
 
-[[redirects]]
-  from = "/no-access"
-  to = "/login"
-  status = 302
-  conditions = {Role = []}
-
-# Fallback za SPA - osigurava da React preuzme kontrolu nad rutama
-# i da parametri u URL-u (poput #invite_token) ostanu dostupni klijentu
+# 3. SPA Fallback: Sve ostale rute šalji na index.html 
+# Ovo omogućava da Identity tokeni (#invite_token=...) stignu do React-a
 [[redirects]]
   from = "/*"
   to = "/index.html"
