@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Flipzone Balkan | Elite Reselling Hub</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Netlify Identity Widget - Učitavamo ga bez defer kako bi bio dostupan odmah -->
     <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,34 +57,36 @@
       ::-webkit-scrollbar-track { background: #02040a; }
       ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
       
-      /* Osiguravamo da je Netlify widget uvijek iznad svega */
-      #netlify-identity-widget {
-        z-index: 9999 !important;
+      /* KRITIČNO: Osiguravamo da je Netlify prozor IZNAD SVEGA */
+      #netlify-identity-widget, 
+      .netlify-identity-widget-modal {
+        z-index: 999999 !important;
       }
     </style>
     <script>
-      // Force Netlify Identity to handle invite tokens immediately
+      // RUKOVANJE TOKENIMA (INVITE/RECOVERY)
+      // Moramo reagirati čim se stranica učita
       (function() {
         var hash = window.location.hash;
-        if (hash && (hash.indexOf('invite_token') !== -1 || hash.indexOf('recovery_token') !== -1)) {
-          console.log("Token detected in URL hash. Waiting for Identity widget...");
-          var interval = setInterval(function() {
+        if (hash && (hash.includes('invite_token') || hash.includes('recovery_token'))) {
+          console.log("Detecting Netlify Identity Token...");
+          // Čuvamo hash u memoriji u slučaju da ga React obriše
+          window.__NETLIFY_TOKEN = hash;
+          
+          // Čekamo da se widget učita
+          var checkWidget = setInterval(function() {
             if (window.netlifyIdentity) {
-              clearInterval(interval);
+              clearInterval(checkWidget);
               window.netlifyIdentity.on('init', function(user) {
                 if (!user) {
-                  console.log("No user on init, but token present. Forcing open...");
+                  console.log("Invoking Identity Modal for token...");
                   window.netlifyIdentity.open();
                 }
               });
-              // Ako se init već dogodio, pokušaj otvoriti nakon kratke pauze
-              setTimeout(function() {
-                window.netlifyIdentity.open();
-              }, 1000);
+              // Prisilno otvaranje nakon 1s ako init nije uspio
+              setTimeout(function() { window.netlifyIdentity.open(); }, 1500);
             }
           }, 100);
-          // Stop trying after 5 seconds
-          setTimeout(function() { clearInterval(interval); }, 5000);
         }
       })();
     </script>

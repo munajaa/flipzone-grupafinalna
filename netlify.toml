@@ -4,15 +4,8 @@
   functions = "netlify/functions"
   publish = "dist"
 
-# 1. DOPUSTI PRISTUP AKO KORISNIK IMA PAID ROLU
-[[redirects]]
-  from = "/app/*"
-  to = "/index.html"
-  status = 200
-  conditions = {Role = ["paid"]}
-
-# 2. SPA FALLBACK (Sve rute šalji na index.html)
-# Ovo osigurava da React obradi rute i da se ne gubi #invite_token
+# Jednostavan SPA fallback
+# Netlify Identity će sam obraditi tokene na / ruti
 [[redirects]]
   from = "/*"
   to = "/index.html"
