@@ -34,51 +34,66 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (typeof netlifyIdentity !== 'undefined') {
-      // Inicijalizacija sa dodatnim postavkama
-      netlifyIdentity.init({
-        APIReachable: true
-      });
+      // Postavljamo init ali ne forsiramo logout ako korisnik nije ulogiran
+      netlifyIdentity.init();
       
-      console.log("Identity Hub Initialized");
+      console.log("Identity Hub Initializing...");
 
-      // Funkcija za provjeru i otvaranje widgeta ako postoji token
-      const handleToken = () => {
+      // Funkcija koja forsira otvaranje widgeta ako postoji token
+      const checkAndOpenToken = () => {
         const hash = window.location.hash;
         if (hash && (hash.includes('invite_token') || hash.includes('recovery_token') || hash.includes('confirmation_token'))) {
-          console.log("Token detektiran u URL-u, otvaram widget...");
-          // Dajemo widgetu trenutak da se stabilizira
+          console.log("Identity [Token Mode] - Otvaram formu za registraciju/oporavak");
           setTimeout(() => {
-            netlifyIdentity.open(); 
-          }, 500);
+            netlifyIdentity.open(); // Otvara prozor
+          }, 300);
         }
       };
 
-      // Provjeravamo odmah i na init eventu
-      handleToken();
+      // Inicijalna provjera na startu
+      const currentUser = netlifyIdentity.currentUser();
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        checkAndOpenToken();
+      }
+
+      // Eventi
       netlifyIdentity.on('init', (u: any) => {
-        console.log('Identity Init event fired');
+        console.log('Identity [Init]');
         if (u) setUser(u);
-        handleToken();
+        else checkAndOpenToken();
       });
 
       netlifyIdentity.on('login', (u: any) => {
-        console.log('Login success:', u.email);
+        console.log('Identity [Login success]:', u.email);
         setUser(u);
         netlifyIdentity.close();
-        // Ako je korisnik upravo prihvatio invite, možda mu treba refresh da vidi 'paid' rolu
+        
+        // Ako smo upravo ušli preko invite tokena, očisti ga iz URL-a
         if (window.location.hash.includes('invite_token')) {
-          window.location.hash = ''; // Očisti token
+          window.location.hash = '';
+          // Opcionalno reloadaj ako rola nije odmah vidljiva
+          if (!u.app_metadata?.roles?.includes('paid')) {
+             setTimeout(() => window.location.reload(), 1500);
+          }
         }
       });
 
       netlifyIdentity.on('logout', () => {
-        console.log('User logged out');
+        console.log('Identity [Logout]');
         setUser(null);
         setActiveSection('dashboard');
         window.location.hash = '';
       });
 
-      netlifyIdentity.on('error', (err: any) => console.error('Identity Error:', err));
+      netlifyIdentity.on('error', (err: any) => {
+        console.error('Identity [Error]:', err);
+        // Ako je greška "Requested entity was not found", vjerojatno je istekao token ili loš API setup
+        if (err.message?.includes('not found')) {
+           console.warn("Mogući problem sa tokenom pozivnice.");
+        }
+      });
     }
     
     setIsLoading(false);

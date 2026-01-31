@@ -60,6 +60,24 @@
         z-index: 1000;
       }
     </style>
+    <script>
+      // Ovaj skript pomaže Netlify Identity-u da obradi invite/recovery tokene
+      if (window.location.hash) {
+        const hash = window.location.hash;
+        if (hash.indexOf('invite_token') !== -1 || hash.indexOf('recovery_token') !== -1) {
+          console.log("Identity token detektiran, inicijaliziram widget...");
+          window.addEventListener('load', function() {
+            if (window.netlifyIdentity) {
+              window.netlifyIdentity.on('init', function(user) {
+                if (!user) {
+                  window.netlifyIdentity.open();
+                }
+              });
+            }
+          });
+        }
+      }
+    </script>
 <script type="importmap">
 {
   "imports": {
