@@ -33,20 +33,47 @@ const App: React.FC = () => {
   }, [activeCategory]);
 
   useEffect(() => {
+    console.log("Initializing Netlify Identity...");
     netlifyIdentity.init();
     
+    // Debug logging za Identity evente
+    netlifyIdentity.on('init', (u: any) => console.log('Identity [Init]:', u));
+    netlifyIdentity.on('open', () => console.log('Identity [Open]'));
+    netlifyIdentity.on('close', () => console.log('Identity [Close]'));
+    netlifyIdentity.on('error', (err: any) => console.error('Identity [Error]:', err));
+
+    // Handle invite/recovery tokena u URL-u
+    const hash = window.location.hash;
+    if (hash && (hash.includes('_token=') || hash.includes('invite_token=') || hash.includes('recovery_token='))) {
+      console.log("Detected Identity token in URL. Opening widget for signup/recovery...");
+      // Kratka odgoda da se osigura da je widget spreman
+      setTimeout(() => {
+        netlifyIdentity.open();
+      }, 500);
+    }
+
     const currentUser = netlifyIdentity.currentUser();
-    if (currentUser) setUser(currentUser);
+    if (currentUser) {
+      console.log("Logged in user found:", currentUser.email);
+      setUser(currentUser);
+    }
     setIsLoading(false);
 
     netlifyIdentity.on('login', (loggedUser: any) => {
+      console.log('Identity [Login success]:', loggedUser.email);
       setUser(loggedUser);
       netlifyIdentity.close();
+      // Force refresh of roles
+      if (loggedUser.app_metadata?.roles?.includes('paid')) {
+        setActiveSection('dashboard');
+      }
     });
 
     netlifyIdentity.on('logout', () => {
+      console.log('Identity [Logout]');
       setUser(null);
       setActiveSection('dashboard');
+      window.location.hash = ''; // Clear hash on logout
     });
   }, []);
 
@@ -79,7 +106,7 @@ const App: React.FC = () => {
     return (
       <div className="relative min-h-screen">
         <LiquidBackground />
-        <Login onLogin={() => {}} onPay={handleStartPayment} />
+        <Login onLogin={() => netlifyIdentity.open()} onPay={handleStartPayment} />
       </div>
     );
   }

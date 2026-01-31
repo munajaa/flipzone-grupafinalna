@@ -19,3 +19,10 @@
   to = "/login"
   status = 302
   conditions = {Role = []}
+
+# Fallback za SPA - osigurava da React preuzme kontrolu nad rutama
+# i da parametri u URL-u (poput #invite_token) ostanu dostupni klijentu
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
