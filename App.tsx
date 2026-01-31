@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import LiquidBackground from './components/LiquidBackground.tsx';
 import VideoPlayer from './components/VideoPlayer.tsx';
+import VideoCard from './components/VideoCard.tsx';
 import Login from './components/Login.tsx';
 import { VIDEO_LESSONS, VENDORS, DOCUMENTS } from './constants';
 import { VideoLesson, AppSection } from './types';
@@ -28,171 +29,187 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleIdentity = () => {
       if (typeof netlifyIdentity === 'undefined') return;
-
       netlifyIdentity.init();
-
       const currentUser = netlifyIdentity.currentUser();
       if (currentUser) setUser(currentUser);
-
-      netlifyIdentity.on('init', (u: any) => {
-        if (u) setUser(u);
-        setIsLoading(false);
-      });
-
-      netlifyIdentity.on('login', (u: any) => {
-        setUser(u);
-        netlifyIdentity.close();
-      });
-
-      netlifyIdentity.on('logout', () => {
-        setUser(null);
-        setActiveSection('dashboard');
-      });
-
-      setTimeout(() => setIsLoading(false), 1500);
+      netlifyIdentity.on('init', (u: any) => { if (u) setUser(u); setIsLoading(false); });
+      netlifyIdentity.on('login', (u: any) => { setUser(u); netlifyIdentity.close(); });
+      netlifyIdentity.on('logout', () => { setUser(null); setActiveSection('dashboard'); });
+      setTimeout(() => setIsLoading(false), 1200);
     };
-
-    if (document.readyState === 'complete') {
-      handleIdentity();
-    } else {
-      window.addEventListener('load', handleIdentity);
-      return () => window.removeEventListener('load', handleIdentity);
-    }
+    if (document.readyState === 'complete') handleIdentity();
+    else window.addEventListener('load', handleIdentity);
   }, []);
-
-  const handleLogout = () => netlifyIdentity.logout();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#02040a] flex flex-col items-center justify-center space-y-6">
-        <div className="w-16 h-16 border-4 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
-        <div className="text-blue-500 font-black italic uppercase tracking-[0.5em] text-[10px] animate-pulse">Flipzone Loading...</div>
+      <div className="min-h-screen bg-[#02040a] flex flex-col items-center justify-center">
+        <div className="relative">
+          <div className="w-24 h-24 border-2 border-blue-500/10 border-t-blue-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center font-black text-xl italic text-blue-500">F</div>
+        </div>
+        <div className="mt-8 text-blue-500 font-black italic uppercase tracking-[0.8em] text-[10px] animate-pulse">Initializing Elite Hub</div>
       </div>
     );
   }
 
-  if (!user) {
-    return (
-      <div className="relative min-h-screen">
-        <LiquidBackground />
-        <Login onLogin={() => netlifyIdentity.open()} />
-      </div>
-    );
-  }
+  if (!user) return (
+    <div className="relative min-h-screen"><LiquidBackground /><Login onLogin={() => netlifyIdentity.open()} /></div>
+  );
 
   return (
-    <div className="relative min-h-screen selection:bg-blue-500 selection:text-white bg-[#02040a]">
+    <div className="relative min-h-screen selection:bg-blue-600 selection:text-white bg-[#02040a]">
       <LiquidBackground />
       
-      <header className="sticky top-0 z-50 py-6 px-4 md:px-10">
-        <div className="max-w-7xl mx-auto flex items-center justify-between glass-card p-4 rounded-[2.5rem] border-white/10">
-          <button onClick={() => setActiveSection('dashboard')} className="flex items-center gap-4 group">
-             <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center font-black text-2xl group-hover:rotate-12 transition-transform shadow-xl shadow-blue-600/20 text-white">F</div>
+      {/* Dynamic Header */}
+      <header className="sticky top-0 z-50 py-8 px-6 md:px-12 pointer-events-none">
+        <div className="max-w-[1600px] mx-auto flex items-center justify-between glass-card p-4 rounded-[2.5rem] border-white/10 pointer-events-auto backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+          <button onClick={() => setActiveSection('dashboard')} className="flex items-center gap-5 pl-4 group">
+             <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl flex items-center justify-center font-black text-3xl group-hover:rotate-[15deg] transition-all duration-500 shadow-2xl shadow-blue-600/40 text-white">F</div>
              <div className="hidden sm:block text-left">
-               <div className="text-xl font-black font-heading italic uppercase leading-none tracking-tighter text-white">Flipzone</div>
-               <div className="text-[9px] font-black text-blue-500 uppercase tracking-[0.5em] leading-none mt-1 text-left">Balkan Elite</div>
+               <div className="text-2xl font-black font-heading italic uppercase leading-none tracking-tighter text-white">Flipzone</div>
+               <div className="text-[10px] font-black text-blue-500 uppercase tracking-[0.6em] leading-none mt-1.5 text-left">Balkan Elite</div>
              </div>
           </button>
 
-          <nav className="hidden md:flex items-center gap-2">
-            {['lessons', 'suppliers', 'documents'].map(id => (
+          <nav className="hidden lg:flex items-center gap-3 bg-white/5 p-2 rounded-3xl border border-white/5">
+            {[
+              { id: 'lessons', label: 'Akademija', icon: '▶' },
+              { id: 'suppliers', label: 'Vendori', icon: '🤝' },
+              { id: 'documents', label: 'Resursi', icon: '📄' }
+            ].map(item => (
               <button
-                key={id}
-                onClick={() => setActiveSection(id as AppSection)}
-                className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all ${
-                  activeSection === id ? 'bg-white/10 text-white' : 'text-slate-500 hover:text-slate-300'
+                key={item.id}
+                onClick={() => setActiveSection(item.id as AppSection)}
+                className={`px-8 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center gap-3 ${
+                  activeSection === item.id 
+                    ? 'bg-white text-black shadow-[0_10px_25px_rgba(255,255,255,0.2)]' 
+                    : 'text-slate-500 hover:text-white'
                 }`}
               >
-                {id === 'lessons' ? 'Akademija' : id === 'suppliers' ? 'Vendori' : 'Resursi'}
+                <span>{item.icon}</span>
+                {item.label}
               </button>
             ))}
           </nav>
 
-          <div className="flex items-center gap-4">
-             <button onClick={handleLogout} className="px-4 py-3 md:px-6 md:py-3 rounded-2xl bg-slate-900 border border-white/5 text-[10px] font-black italic text-slate-400 hover:text-white transition-colors">LOGOUT</button>
-             <div className="w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 p-[1px] hover:scale-105 transition-transform cursor-pointer">
-                <div className="w-full h-full rounded-2xl bg-[#02040a] flex items-center justify-center text-[10px] font-black italic text-white uppercase">{user.email?.charAt(0)}</div>
+          <div className="flex items-center gap-5 pr-2">
+             <button onClick={() => netlifyIdentity.logout()} className="hidden md:block px-6 py-3 rounded-2xl bg-white/5 text-[10px] font-black italic text-slate-400 hover:bg-red-600/20 hover:text-red-400 transition-all uppercase tracking-widest border border-white/5">LOGOUT</button>
+             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 p-[2px] hover:scale-105 transition-transform cursor-pointer shadow-lg">
+                <div className="w-full h-full rounded-2xl bg-[#02040a] flex items-center justify-center text-xs font-black italic text-white uppercase">{user.email?.charAt(0)}</div>
              </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 md:px-10 pb-20">
+      <main className="max-w-[1600px] mx-auto px-6 md:px-12 pb-32">
         {activeSection === 'dashboard' && (
-          <div className="py-20 text-center space-y-12 animate-in fade-in duration-1000">
-            <h1 className="text-5xl md:text-8xl font-black font-heading italic leading-tight tracking-tighter text-white">ZONA <span className="animate-text-gradient uppercase">PROFITIRA</span></h1>
-            <p className="text-base md:text-lg text-slate-400 max-w-2xl mx-auto font-medium italic">Dobrodošli nazad. Svi resursi su spremni za tvoju sledeću prodaju.</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto mt-20">
-               <div onClick={() => setActiveSection('lessons')} className="glass-card p-8 md:p-10 rounded-[3rem] border-white/5 cursor-pointer hover:border-blue-500/50 transition-all text-left">
-                  <div className="w-12 h-12 bg-blue-600/20 rounded-xl flex items-center justify-center text-blue-500 mb-6">▶</div>
-                  <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white">Akademija</h3>
-                  <p className="text-xs text-slate-500 mt-2 font-medium italic">Video lekcije i strategije.</p>
-               </div>
-               <div onClick={() => setActiveSection('suppliers')} className="glass-card p-8 md:p-10 rounded-[3rem] border-white/5 cursor-pointer hover:border-blue-500/50 transition-all text-left">
-                  <div className="w-12 h-12 bg-blue-600/20 rounded-xl flex items-center justify-center text-blue-500 mb-6">🤝</div>
-                  <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white">Vendori</h3>
-                  <p className="text-xs text-slate-500 mt-2 font-medium italic">Poveži se sa dobavljačima.</p>
-               </div>
-               <div onClick={() => setActiveSection('documents')} className="glass-card p-8 md:p-10 rounded-[3rem] border-white/5 cursor-pointer hover:border-blue-500/50 transition-all text-left">
-                  <div className="w-12 h-12 bg-blue-600/20 rounded-xl flex items-center justify-center text-blue-500 mb-6">📄</div>
-                  <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white">Resursi</h3>
-                  <p className="text-xs text-slate-500 mt-2 font-medium italic">PDF-ovi i alati za rad.</p>
-               </div>
+          <div className="py-24 text-center space-y-16 animate-in fade-in duration-1000">
+            <div className="inline-block px-6 py-2 bg-blue-600/10 border border-blue-500/20 rounded-full text-[10px] font-black text-blue-500 uppercase tracking-[0.5em] mb-4">
+              Authorized Member Only
+            </div>
+            <h1 className="text-6xl md:text-[10rem] font-black font-heading italic leading-[0.85] tracking-tighter text-white">
+              SISTEM <br /> <span className="animate-text-gradient uppercase">OTKLJUČAN.</span>
+            </h1>
+            <p className="text-xl md:text-2xl text-slate-400 max-w-3xl mx-auto font-medium italic leading-relaxed">
+              Pristupaš najnaprednijoj Balkan reselling bazi. Sve lekcije i provereni vendori su ti na raspolaganju.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-6xl mx-auto mt-32">
+               {[
+                 { id: 'lessons', title: 'Akademija', desc: 'Video lekcije visoke produkcije.', color: 'blue' },
+                 { id: 'suppliers', title: 'Vendori', desc: 'VIP Balkan i EU izvori.', color: 'indigo' },
+                 { id: 'documents', title: 'Resursi', desc: 'Tabelarni prikazi i PDF alati.', color: 'cyan' }
+               ].map((card, i) => (
+                 <div 
+                  key={card.id} 
+                  onClick={() => setActiveSection(card.id as AppSection)} 
+                  className="perspective-container group cursor-pointer"
+                  style={{ animationDelay: `${i * 100}ms` }}
+                 >
+                    <div className="card-3d-effect glass-card p-12 rounded-[3.5rem] border-white/5 text-left group-hover:border-blue-500/30">
+                      <div className={`w-16 h-16 bg-${card.color}-600/20 rounded-2xl flex items-center justify-center text-3xl mb-8 shadow-inner`}>
+                        {card.id === 'lessons' ? '▶' : card.id === 'suppliers' ? '🤝' : '📄'}
+                      </div>
+                      <h3 className="text-3xl font-black italic uppercase tracking-tighter text-white">{card.title}</h3>
+                      <p className="text-sm text-slate-500 mt-3 font-medium italic">{card.desc}</p>
+                      <div className="mt-8 flex items-center gap-3 text-blue-500 font-black text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                         PRISTUPI <span className="text-lg">→</span>
+                      </div>
+                    </div>
+                 </div>
+               ))}
             </div>
           </div>
         )}
 
         {activeSection === 'lessons' && (
-          <div className="py-10 space-y-16 animate-in slide-in-from-bottom-10 duration-700">
-             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                <h2 className="text-4xl font-black font-heading italic uppercase tracking-tighter text-white">Video <span className="text-blue-500">Lekcije</span></h2>
-                <div className="flex flex-wrap gap-2 bg-white/5 p-2 rounded-2xl border border-white/5">
+          <div className="py-16 space-y-20 animate-in slide-in-from-bottom-10 duration-700">
+             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
+                <div className="space-y-4">
+                  <h2 className="text-5xl md:text-7xl font-black font-heading italic uppercase tracking-tighter text-white leading-none">
+                    Video <span className="text-blue-500">Feed</span>
+                  </h2>
+                  <p className="text-slate-500 italic font-medium max-w-xl">Pregledaj sve dostupne lekcije sortirane po kategorijama. Klikni na video za detaljan pregled i YouTube-style iskustvo.</p>
+                </div>
+                <div className="flex flex-wrap gap-2 bg-white/5 p-3 rounded-[2rem] border border-white/5 backdrop-blur-xl">
                   {videoCategories.map(cat => (
-                    <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeCategory === cat ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-500'}`}>{cat}</button>
+                    <button 
+                      key={cat} 
+                      onClick={() => setActiveCategory(cat)} 
+                      className={`px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                        activeCategory === cat 
+                          ? 'bg-blue-600 text-white shadow-[0_10px_30px_rgba(37,99,235,0.4)]' 
+                          : 'text-slate-500 hover:text-white'
+                      }`}
+                    >
+                      {cat}
+                    </button>
                   ))}
                 </div>
              </div>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
                {filteredLessons.map(video => (
-                 <div key={video.id} onClick={() => setSelectedVideo(video)} className="card-3d glass-card group rounded-[3rem] overflow-hidden cursor-pointer border-white/5 transition-transform hover:-translate-y-2">
-                    <div className="aspect-video relative overflow-hidden">
-                      <img src={video.thumbnail} className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700" alt={video.title} />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent"></div>
-                      <div className="absolute bottom-6 left-8 right-8 text-left">
-                         <h4 className="text-xl font-black italic uppercase tracking-tighter text-white leading-tight">{video.title}</h4>
-                      </div>
-                    </div>
-                    <div className="p-8 space-y-4 text-left">
-                       <p className="text-xs text-slate-500 leading-relaxed italic font-medium line-clamp-2">{video.description}</p>
-                       <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                          <span className="text-[10px] font-black text-slate-600 italic uppercase">{video.duration} MIN</span>
-                          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">GLEDAJ →</span>
-                       </div>
-                    </div>
-                 </div>
+                 <VideoCard key={video.id} video={video} onClick={setSelectedVideo} />
                ))}
              </div>
           </div>
         )}
 
         {activeSection === 'suppliers' && (
-          <div className="py-10 animate-in slide-in-from-right-10 duration-700">
-             <h2 className="text-4xl font-black font-heading italic uppercase tracking-tighter text-white mb-12">VIP <span className="text-blue-500">Vendor</span> Hub</h2>
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          <div className="py-16 animate-in slide-in-from-right-10 duration-700">
+             <h2 className="text-5xl md:text-7xl font-black font-heading italic uppercase tracking-tighter text-white mb-20 leading-none">
+               VIP <span className="text-blue-500">Vendori</span>
+             </h2>
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
                {VENDORS.map(v => (
-                 <div key={v.id} className="card-3d glass-card group rounded-[3.5rem] overflow-hidden border-white/5 flex flex-col">
-                    <div className="aspect-[16/10] relative">
-                       <img src={v.image} className="w-full h-full object-cover grayscale-[20%] group-hover:grayscale-0 transition-all duration-700" alt={v.title} />
-                       <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
-                       <div className="absolute bottom-6 left-8 text-left">
-                          <h3 className="text-2xl font-black italic uppercase tracking-tighter text-white">{v.title}</h3>
-                          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">{v.subTitle}</span>
-                       </div>
-                    </div>
-                    <div className="p-10 space-y-6 flex-1 flex flex-col text-left">
-                       <p className="text-xs text-slate-500 italic font-medium leading-relaxed line-clamp-3">{v.description}</p>
-                       <a href={v.link} target="_blank" className="mt-auto py-5 bg-white text-slate-950 rounded-3xl font-black text-[10px] uppercase tracking-widest text-center hover:bg-blue-600 hover:text-white transition-all">Pristupi Kanallu</a>
-                    </div>
+                 <div key={v.id} className="perspective-container group">
+                   <div className="card-3d-effect glass-card rounded-[4rem] overflow-hidden border-white/5 flex flex-col group-hover:border-blue-500/30">
+                      <div className="aspect-[16/10] relative">
+                         <img src={v.image} className="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all duration-1000" alt={v.title} />
+                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent"></div>
+                         <div className="absolute bottom-8 left-10 text-left">
+                            <h3 className="text-3xl font-black italic uppercase tracking-tighter text-white leading-none mb-2">{v.title}</h3>
+                            <span className="text-[11px] font-black text-blue-500 uppercase tracking-[0.4em]">{v.subTitle}</span>
+                         </div>
+                      </div>
+                      <div className="p-12 space-y-8 flex-1 flex flex-col text-left">
+                         <div className="grid grid-cols-2 gap-6">
+                            <div className="bg-white/5 p-6 rounded-3xl border border-white/5 text-center">
+                               <div className="text-[9px] font-black text-slate-600 uppercase mb-2 tracking-widest">PROFIT MARŽA</div>
+                               <div className="text-2xl font-black text-green-500 italic tracking-tighter">{v.metrics.profit}</div>
+                            </div>
+                            <div className="bg-white/5 p-6 rounded-3xl border border-white/5 text-center">
+                               <div className="text-[9px] font-black text-slate-600 uppercase mb-2 tracking-widest">RIZIK</div>
+                               <div className={`text-2xl font-black italic tracking-tighter ${v.metrics.risk === 'low' ? 'text-blue-400' : 'text-orange-400'}`}>
+                                 {v.metrics.risk.toUpperCase()}
+                               </div>
+                            </div>
+                         </div>
+                         <p className="text-sm text-slate-400 italic font-medium leading-relaxed line-clamp-3 opacity-80">{v.description}</p>
+                         <a href={v.link} target="_blank" className="mt-auto py-6 bg-white text-slate-950 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.3em] text-center hover:bg-blue-600 hover:text-white transition-all shadow-xl group-hover:shadow-blue-600/20">KONTAKTIRAJ VENDORA</a>
+                      </div>
+                   </div>
                  </div>
                ))}
              </div>
