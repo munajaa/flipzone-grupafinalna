@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import LiquidBackground from './components/LiquidBackground';
-import VideoPlayer from './components/VideoPlayer';
-import Login from './components/Login';
-import UnlockScreen from './components/UnlockScreen';
+import LiquidBackground from './components/LiquidBackground.tsx';
+import VideoPlayer from './components/VideoPlayer.tsx';
+import Login from './components/Login.tsx';
+import UnlockScreen from './components/UnlockScreen.tsx';
 import { VIDEO_LESSONS, VENDORS, DOCUMENTS } from './constants';
-import { VideoLesson, AppSection, MarketStatus, RiskLevel } from './types';
+import { VideoLesson, AppSection } from './types';
 
 declare var netlifyIdentity: any;
 
@@ -53,7 +53,6 @@ const App: React.FC = () => {
   const handleLogout = () => netlifyIdentity.logout();
 
   const handleStartPayment = async () => {
-    // Ako je korisnik ulogiran i već ima paid rolu, pošalji ga na app
     if (user && isPaid) {
       setActiveSection('dashboard');
       return;
@@ -76,7 +75,6 @@ const App: React.FC = () => {
 
   if (isLoading) return null;
 
-  // Ako korisnik nije ulogiran -> Landing Page (koji je u Login komponenti)
   if (!user) {
     return (
       <div className="relative min-h-screen">
@@ -86,7 +84,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Ako je ulogiran, ali nema plaćeno -> Specijalni Paywall ekran
   if (!isPaid) {
     return (
       <div className="relative min-h-screen">
@@ -96,7 +93,6 @@ const App: React.FC = () => {
     );
   }
 
-  // Ako je ulogiran i ima plaćeno -> Full App
   return (
     <div className="relative min-h-screen selection:bg-blue-500 selection:text-white bg-[#02040a]">
       <LiquidBackground />
