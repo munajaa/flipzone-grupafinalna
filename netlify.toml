@@ -1,0 +1,21 @@
+
+[build]
+  command = "npm run build"
+  functions = "netlify/functions"
+  publish = "."
+
+[[redirects]]
+  from = "/app/*"
+  status = 200
+  conditions = {Role = ["paid"]}
+
+[[redirects]]
+  from = "/app/*"
+  to = "/no-access"
+  status = 302
+
+[[redirects]]
+  from = "/no-access"
+  to = "/login"
+  status = 302
+  conditions = {Role = []}

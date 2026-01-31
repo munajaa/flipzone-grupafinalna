@@ -1,0 +1,8 @@
+{
+  "name": "Flipzone Balkan Reselling Hub",
+  "description": "Premium educational platform for the Flipzone Balkan reselling community featuring video lessons and market insights.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
